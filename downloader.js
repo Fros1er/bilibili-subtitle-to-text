@@ -2,12 +2,13 @@
 // @name         bilibili-subtitle-to-text
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  try to take over the world!
+// @description  一次性展示bilibili的cc字幕。适合需要快速阅读字幕的场景。
 // @author       You
 // @match        https://www.bilibili.com/video/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
 // @grant        GM_addStyle
 // @require      https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js
+// @license      GNU GPLv3
 // ==/UserScript==
 
 // us for userscript
