@@ -44,6 +44,19 @@ GM_addStyle(`
 .us-lyric-line-content {
     white-space: nowrap;
 }
+
+.us-download-div {
+    position: absolute;
+    top: 0;
+    right: 32px;
+    height: 32px;
+    line-height: 32px;
+    white-space: nowrap;
+}
+
+.us-download-div>a {
+    margin-right: 8px;
+}
 `)
 
 
@@ -70,7 +83,6 @@ function parseTime(t) {
 
 (function () {
     "use strict"
-
     let subtitleBtn = $(`
     <div class="video-toolbar-right-item">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="video-note-icon video-toolbar-item-icon" viewBox="0 0 16 16">
@@ -83,15 +95,28 @@ function parseTime(t) {
     let dialog = null
     let video = null
     let titlebar = $("<div class=\"titlebar\">选择字幕</div>")
+
     let readerDiv = $("<div class=\"content us-popup-reader\"></div>")
     let popup = $("<div id=\"ZulNs-dialog\" class=\"ZulNs-dialog\" style=\"min-width:400px; min-height:280px;\"></div>")
     popup.append(titlebar)
-    popup.append($("<button name=\"close\" />"))
+    let downloadLink = $("<a>下载字幕</a>")
+    let downloadJsonLink = $("<a>下载字幕Json</a>")
+    let downloadDiv = $("<div class=\"us-download-div\"></div>")
+    downloadDiv.append(downloadLink)
+    downloadDiv.append(downloadJsonLink)
+    downloadDiv.hide()
+    popup.append(downloadDiv)
+    popup.append($("<button name=\"close\" >&#x2716</button>"))
     popup.append(readerDiv)
 
     let urlParameters = window.location.pathname.split("/")
     let bvid = urlParameters.pop()
     if (bvid == "") bvid = urlParameters.pop()
+    let cur_page = null
+
+    // I don't know how to pass addition data in fetch, so two global data are here
+    let page_name = null
+    let video_name = null
 
     // insert link
     setTimeout(() => {
@@ -101,7 +126,9 @@ function parseTime(t) {
                 video = document.querySelector("video")
                 popup.appendTo($("body"))
                 if (!dialog) {
-                    dialog = new DialogBox("ZulNs-dialog", () => { })
+                    dialog = new DialogBox("ZulNs-dialog", () => {
+                        downloadDiv.hide()
+                    })
                 }
                 toolbar.css("margin-right", "18px")
                 subtitleBtn.insertAfter(toolbar)
@@ -111,12 +138,14 @@ function parseTime(t) {
         }, 500)
     }, 3000)
 
-    function parseSubtitle(subtitle) {
+    function parseSubtitle(subtitle, filename_without_ext) {
+        console.log(subtitle)
         fetch(subtitle.subtitle_url.replace("http:", "https:"))
             .then(res => res.json())
             .then(data => {
                 console.log(data)
                 readerDiv.html("")
+                let subtitleText = ""
                 for (let line of data.body) {
                     if (line.music && line.music > MUSIC_FILTER_RATE) {
                         continue
@@ -130,7 +159,13 @@ function parseTime(t) {
                     lineDiv.append(link)
                     lineDiv.append(`<span class="us-lyric-line-content">${line.content}</span></div>`)
                     readerDiv.append(lineDiv)
+                    subtitleText += line.content + "\n"
                 }
+                downloadLink.attr("href", `data:plain/text;charset=utf-8,${encodeURIComponent(subtitleText)}`)
+                downloadJsonLink.attr("href", `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data.body))}`)
+                downloadLink.attr("download", `${filename_without_ext}.txt`)
+                downloadJsonLink.attr("download", `${filename_without_ext}.json`)
+                downloadDiv.show()
             })
     }
 
@@ -147,7 +182,7 @@ function parseTime(t) {
                 let link = $("<a>" + subtitle.lan_doc + "</a>")
                 link.on("click", () => {
                     titlebar.html(subtitle.lan_doc)
-                    parseSubtitle(subtitle)
+                    parseSubtitle(subtitle, `${video_name}-p${cur_page}-${page_name}`)
                 })
                 readerDiv.append(link)
             }
@@ -159,7 +194,7 @@ function parseTime(t) {
     subtitleBtn.on("click", () => {
         titlebar.html("选择字幕")
         dialog.showDialog()
-        let cur_page = (new URLSearchParams(window.location.search)).get("p") - 1
+        cur_page = (new URLSearchParams(window.location.search)).get("p") - 1
         if (!cur_page || cur_page == -1) {
             cur_page = 0
         }
@@ -172,6 +207,8 @@ function parseTime(t) {
                 if (data.code != 0) {
                     throw new Error(data.message)
                 }
+                video_name = data.data.title
+                page_name = data.data.pages[cur_page].part
                 return fetch(`https://api.bilibili.com/x/player/v2?aid=${data.data.aid}&cid=${data.data.pages[cur_page].cid}`, {
                     credentials: "include"
                 })
@@ -204,7 +241,7 @@ GM_addStyle(`
 	border-radius: 8px;
     margin: 0;
 	position: fixed;
-    z-index: 9999;
+    z-index: 9999!important;
     height: 480px;
 }
 .ZulNs-dialog .titlebar {
@@ -727,10 +764,10 @@ function DialogBox(id, callback) {
             var _dialogContentStyle = getComputedStyle(_dialogContent),
                 _dialogButtonPaneStyle,
                 _dialogButtonPaneStyleBefore
-            if (_buttons.length > 1) {
-                _dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane)
-                _dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before")
-            }
+            // if (_buttons.length > 1) {
+            //     _dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane)
+            //     _dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before")
+            // }
 
             var w = _dialog.clientWidth
                 - parseInt(_dialogContentStyle.left) // .ZulNs-dialog .content { left: 16px; }
@@ -739,12 +776,12 @@ function DialogBox(id, callback) {
                 h = _dialog.clientHeight - (
                     parseInt(_dialogContentStyle.top) // .ZulNs-dialog .content { top: 48px } 
                     + 16 // ?
-                    + (_buttons.length > 1 ?
-                        + parseInt(_dialogButtonPaneStyleBefore.borderBottom) // .ZulNs-dialog .buttonpane:before { border-bottom: 1px; }
-                        - parseInt(_dialogButtonPaneStyleBefore.top) // .ZulNs-dialog .buttonpane:before { height: 0; top: -16px; }
-                        + parseInt(_dialogButtonPaneStyle.height) // .ZulNs-dialog .buttonset button { height: 32px; }
-                        + parseInt(_dialogButtonPaneStyle.bottom) // .ZulNs-dialog .buttonpane { bottom: 16px; }
-                        : 0)
+                    // + (_buttons.length > 1 ?
+                    //     + parseInt(_dialogButtonPaneStyleBefore.borderBottom) // .ZulNs-dialog .buttonpane:before { border-bottom: 1px; }
+                    //     - parseInt(_dialogButtonPaneStyleBefore.top) // .ZulNs-dialog .buttonpane:before { height: 0; top: -16px; }
+                    //     + parseInt(_dialogButtonPaneStyle.height) // .ZulNs-dialog .buttonset button { height: 32px; }
+                    //     + parseInt(_dialogButtonPaneStyle.bottom) // .ZulNs-dialog .buttonpane { bottom: 16px; }
+                    //     : 0)
                 ) // Ensure to get minimal height
             _dialogContent.style.width = w + "px"
             _dialogContent.style.height = h + "px"
@@ -782,19 +819,20 @@ function DialogBox(id, callback) {
                 _dialogButtonPaneStyle,
                 _dialogButtonPaneStyleBefore,
                 _dialogButtonStyle
-            if (_buttons.length > 1) {
-                _dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane)
-                _dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before")
-                _dialogButtonStyle = getComputedStyle(_buttons[1])
-            }
+            // if (_buttons.length > 1) {
+            //     _dialogButtonPaneStyle = getComputedStyle(_dialogButtonPane)
+            //     _dialogButtonPaneStyleBefore = getComputedStyle(_dialogButtonPane, ":before")
+            //     _dialogButtonStyle = getComputedStyle(_buttons[1])
+            // }
 
             // Calculate minimal width
             _minW = Math.max(_dialog.clientWidth, _minW,
-                + (_buttons.length > 1 ?
-                    + (_buttons.length - 1) * parseInt(_dialogButtonStyle.width) // .ZulNs-dialog .buttonset button { width: 64px; }
-                    + (_buttons.length - 1 - 1) * 16 // .ZulNs-dialog .buttonset button { margin-left: 16px; } // but not for first-child
-                    + (_buttons.length - 1 - 1) * 16 / 2 // The formula is not correct, however, with fixed value 16 for margin-left: 16px it works
-                    : 0)
+                // + (_buttons.length > 1 ?
+                //     + (_buttons.length - 1) * parseInt(_dialogButtonStyle.width) // .ZulNs-dialog .buttonset button { width: 64px; }
+                //     + (_buttons.length - 1 - 1) * 16 // .ZulNs-dialog .buttonset button { margin-left: 16px; } // but not for first-child
+                //     + (_buttons.length - 1 - 1) * 16 / 2 // The formula is not correct, however, with fixed value 16 for margin-left: 16px it works
+                //     : 0)
+                0
             )
             _dialog.style.width = _minW + "px"
 
@@ -806,12 +844,12 @@ function DialogBox(id, callback) {
                 + 12 // .p { margin-block-start: 1em; } // default
                 + 12 // .ZulNs-dialog { font-size: 12px; } // 1em = 12px
                 + 12 // .p { margin-block-end: 1em; } // default
-                + (_buttons.length > 1 ?
-                    + parseInt(_dialogButtonPaneStyleBefore.borderBottom) // .ZulNs-dialog .buttonpane:before { border-bottom: 1px; }
-                    - parseInt(_dialogButtonPaneStyleBefore.top) // .ZulNs-dialog .buttonpane:before { height: 0; top: -16px; }
-                    + parseInt(_dialogButtonPaneStyle.height) // .ZulNs-dialog .buttonset button { height: 32px; }
-                    + parseInt(_dialogButtonPaneStyle.bottom) // .ZulNs-dialog .buttonpane { bottom: 16px; }
-                    : 0)
+                // + (_buttons.length > 1 ?
+                //     + parseInt(_dialogButtonPaneStyleBefore.borderBottom) // .ZulNs-dialog .buttonpane:before { border-bottom: 1px; }
+                //     - parseInt(_dialogButtonPaneStyleBefore.top) // .ZulNs-dialog .buttonpane:before { height: 0; top: -16px; }
+                //     + parseInt(_dialogButtonPaneStyle.height) // .ZulNs-dialog .buttonset button { height: 32px; }
+                //     + parseInt(_dialogButtonPaneStyle.bottom) // .ZulNs-dialog .buttonpane { bottom: 16px; }
+                //     : 0)
             )
             _dialog.style.height = _minH + "px"
 
@@ -839,10 +877,10 @@ function DialogBox(id, callback) {
             // attach the event to the whole document, but we need to take care not to mess 
             // up normal events outside of the dialog.
             _addEvent(document, "mouseup", _onMouseUp)
-            if (_buttons[0].textContent == "") // Use default symbol X if no other symbol is provided
-                _buttons[0].innerHTML = "&#x2716;" // use of innerHTML is required to show  Unicode characters
             for (var i = 0; i < _buttons.length; i++) {
-                _addEvent(_buttons[i], "click", _onClick)
+                if (_buttons[i].name == "close") {
+                    _addEvent(_buttons[i], "click", _onClick)
+                }
                 _addEvent(_buttons[i], "focus", _onFocus)
                 _addEvent(_buttons[i], "blur", _onBlur)
             }
