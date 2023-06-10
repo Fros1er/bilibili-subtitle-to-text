@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         bilibili-subtitle-to-text
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.21
 // @description  一次性展示bilibili的cc字幕。适合需要快速阅读字幕的场景。
 // @author       You
 // @match        https://www.bilibili.com/video/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
+// @icon         https://www.bilibili.com/favicon.ico
 // @grant        GM_addStyle
 // @require      https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js
 // @license      GNU GPLv3
@@ -54,7 +54,7 @@ GM_addStyle(`
     white-space: nowrap;
 }
 
-.us-download-div>a {
+.us-download-div a {
     margin-right: 8px;
 }
 `)
@@ -99,11 +99,16 @@ function parseTime(t) {
     let readerDiv = $("<div class=\"content us-popup-reader\"></div>")
     let popup = $("<div id=\"ZulNs-dialog\" class=\"ZulNs-dialog\" style=\"min-width:400px; min-height:280px;\"></div>")
     popup.append(titlebar)
-    let downloadLink = $("<a>下载字幕</a>")
+    let downloadGenerateLink = $("<a>下载字幕</a>")
+    let downloadLink = $("<a>下载字幕文本</a>")
     let downloadJsonLink = $("<a>下载字幕Json</a>")
     let downloadDiv = $("<div class=\"us-download-div\"></div>")
-    downloadDiv.append(downloadLink)
-    downloadDiv.append(downloadJsonLink)
+    let downloadDivInner = $("<div />")
+    downloadDivInner.hide()
+    downloadDiv.append(downloadGenerateLink)
+    downloadDiv.append(downloadDivInner)
+    downloadDivInner.append(downloadLink)
+    downloadDivInner.append(downloadJsonLink)
     downloadDiv.hide()
     popup.append(downloadDiv)
     popup.append($("<button name=\"close\" >&#x2716</button>"))
@@ -127,6 +132,10 @@ function parseTime(t) {
                 popup.appendTo($("body"))
                 if (!dialog) {
                     dialog = new DialogBox("ZulNs-dialog", () => {
+                        downloadLink.attr("href", "")
+                        downloadJsonLink.attr("href", "")
+                        downloadLink.attr("download", "")
+                        downloadJsonLink.attr("download", "")
                         downloadDiv.hide()
                     })
                 }
@@ -139,13 +148,11 @@ function parseTime(t) {
     }, 3000)
 
     function parseSubtitle(subtitle, filename_without_ext) {
-        console.log(subtitle)
         fetch(subtitle.subtitle_url.replace("http:", "https:"))
             .then(res => res.json())
             .then(data => {
-                console.log(data)
+                // console.log(data)
                 readerDiv.html("")
-                let subtitleText = ""
                 for (let line of data.body) {
                     if (line.music && line.music > MUSIC_FILTER_RATE) {
                         continue
@@ -154,17 +161,25 @@ function parseTime(t) {
                     link.on("click", () => {
                         video.currentTime = line.from
                     })
-
                     let lineDiv = $("<div class=\"us-lyric-line\" />")
                     lineDiv.append(link)
                     lineDiv.append(`<span class="us-lyric-line-content">${line.content}</span></div>`)
                     readerDiv.append(lineDiv)
-                    subtitleText += line.content + "\n"
                 }
-                downloadLink.attr("href", `data:plain/text;charset=utf-8,${encodeURIComponent(subtitleText)}`)
-                downloadJsonLink.attr("href", `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data.body))}`)
-                downloadLink.attr("download", `${filename_without_ext}.txt`)
-                downloadJsonLink.attr("download", `${filename_without_ext}.json`)
+                downloadGenerateLink.on("click", () => {
+                    let subtitleText = ""
+                    for (let line of data.body) {
+                        subtitleText += line.content + "\n"
+                    }
+                    downloadLink.attr("href", `data:plain/text;charset=utf-8,${encodeURIComponent(subtitleText)}`)
+                    downloadJsonLink.attr("href", `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data.body))}`)
+                    downloadLink.attr("download", `${filename_without_ext}.txt`)
+                    downloadJsonLink.attr("download", `${filename_without_ext}.json`)
+                    downloadDivInner.show()
+                    downloadGenerateLink.hide()
+                })
+                downloadGenerateLink.show()
+                downloadDivInner.hide()
                 downloadDiv.show()
             })
     }
