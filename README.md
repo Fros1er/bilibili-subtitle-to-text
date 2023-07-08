@@ -4,6 +4,10 @@
 ![](readme-1.png)
 
 ## 如何使用
+里导入到脚本管理器：https://greasyfork.org/zh-CN/scripts/460073-bilibili-subtitle-to-text
+
+你也可以直接把js复制粘贴进去。
+
 脚本管理器导入后，点击播放器下面的“字幕”，选择需要的字幕即可。
 
 如果切换了分p，需要关闭字幕窗口重新选择一次。
