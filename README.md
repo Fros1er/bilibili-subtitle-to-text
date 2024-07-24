@@ -17,6 +17,7 @@
 - 支持窗口拖动和缩放（调用[Draggable-Resizable-Dialog](https://github.com/ZulNs/Draggable-Resizable-Dialog/)）
 - 支持点击时间跳转
 - 支持以文本或json格式下载当前分p的字幕
+- 支持设置字号和歌词过滤阈值（b站会给每条字幕一个0-1之间的数，越大该条字幕越可能是歌词。脚本会过滤掉设置阈值以上的字幕。）
 
 ## 注意事项
 为了让字幕按钮那一栏的字不换行，脚本对其他按钮的width和margin-right有改动。可能会造成与其他脚本的兼容性问题。

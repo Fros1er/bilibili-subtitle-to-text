@@ -9,7 +9,7 @@
 // @grant        GM_addStyle
 // @grant        GM.getValue
 // @grant        GM.setValue
-// @require      https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js
+// @require      https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery/3.6.0/jquery.min.js
 // @license      GNU GPLv3
 // ==/UserScript==
 
