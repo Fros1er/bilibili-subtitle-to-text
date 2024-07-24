@@ -1,0 +1,17 @@
+{
+  "name": "bilibili-subtitle-to-text",
+  "version": "1.0.0",
+  "description": "一个把b站的cc字幕一次性显示出来的脚本。 ![](readme-1.png)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.7.0",
+    "eslint": "9.x",
+    "globals": "^15.8.0"
+  }
+}
