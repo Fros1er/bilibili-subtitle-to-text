@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         bilibili-subtitle-to-text
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.31
 // @description  一次性展示bilibili的cc字幕。适合需要快速阅读字幕的场景。
 // @author       You
 // @match        https://www.bilibili.com/video/*
@@ -258,12 +258,12 @@ class Dialog {
   
   setTimeout(() => {
     let handler = setInterval(() => {
-      let toolbar = $("#arc_toolbar_report .video-toolbar-right .video-note")
+      let toolbar = $("#arc_toolbar_report .video-toolbar-right .video-tool-more")
       if (toolbar.length != 0) {
         video = document.querySelector("video")
         dialog.init()
         toolbar.css("margin-right", "18px")
-        subtitleBtn.insertAfter(toolbar)
+        subtitleBtn.insertBefore(toolbar)
         $(".arc_toolbar_report").css("justify-content", "initial")
         clearInterval(handler)
       }
