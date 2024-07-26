@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         bilibili-subtitle-to-text
 // @namespace    http://tampermonkey.net/
-// @version      0.32
+// @version      0.33
 // @description  一次性展示bilibili的cc字幕。适合需要快速阅读字幕的场景。
 // @author       You
 // @match        https://www.bilibili.com/video/*
@@ -122,23 +122,23 @@ GM_addStyle(`
 `)
 
 function fixNumber(n) {
-return (n).toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })
+  return (n).toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })
 }
 
 function parseTime(t) {
-t = parseInt(t)
-return `${fixNumber(parseInt(t / 60))}:${fixNumber(t % 60)}`
+  t = parseInt(t)
+  return `${fixNumber(parseInt(t / 60))}:${fixNumber(t % 60)}`
 }
 
 const SettingType = Object.freeze({
-Text: Symbol("Text"),
-Submit: Symbol("Submit")
+  Text: Symbol("Text"),
+  Submit: Symbol("Submit")
 })
 
 
 class Dialog {
-constructor() {
-  this.dialogDiv = $(`
+  constructor() {
+    this.dialogDiv = $(`
       <div id="ZulNs-dialog" class="ZulNs-dialog" style="min-width:400px; min-height:280px;">
         <div class="titlebar">Title</div>
         <button name="close">&#x2716</button>
@@ -152,136 +152,136 @@ constructor() {
         <div class="us-fab-div"></div>
       </div>
     `)
-  this._titleBar = this.dialogDiv.find(".titlebar")
-  this.contentPane = this.dialogDiv.find("#content")
-  this.contentScrollPane = this.dialogDiv.find(".content")
-  this.settingPane = this.dialogDiv.find(".us-setting")
-  this.settingForm = this.settingPane.find("form")
-  this.settingPane.hide()
-  this._toolbar = this.dialogDiv.find(".us-toolbar")
-  this.fabDiv = this.dialogDiv.find(".us-fab-div") // floating action button(fab)
-}
-init() {
-  this.dialogDiv.appendTo($("body"))
-  this.dialogBox = new DialogBox("ZulNs-dialog", () => { })
-}
-show() {
-  this.dialogBox.showDialog()
-}
-isShow() {
-  return this.dialogDiv.css("display") != "none"
-}
-setTitle(text) {
-  this._titleBar.html(text)
-}
-addToolbarEntry(text, cb) {
-  let link = $(`<a>${text}</a>`)
-  link.on("click", cb)
-  this._toolbar.append(link)
-  return link
-}
-addSettingEntry(name, type) {
-  if (type === SettingType.Submit) {
-    let submit = $(`<input type="submit" class="us-input-submit" value="${name}">`)
-    this.settingForm.append(submit)
-    return submit
+    this._titleBar = this.dialogDiv.find(".titlebar")
+    this.contentPane = this.dialogDiv.find("#content")
+    this.contentScrollPane = this.dialogDiv.find(".content")
+    this.settingPane = this.dialogDiv.find(".us-setting")
+    this.settingForm = this.settingPane.find("form")
+    this.settingPane.hide()
+    this._toolbar = this.dialogDiv.find(".us-toolbar")
+    this.fabDiv = this.dialogDiv.find(".us-fab-div") // floating action button(fab)
   }
+  init() {
+    this.dialogDiv.appendTo($("body"))
+    this.dialogBox = new DialogBox("ZulNs-dialog", () => { })
+  }
+  show() {
+    this.dialogBox.showDialog()
+  }
+  isShow() {
+    return this.dialogDiv.css("display") != "none"
+  }
+  setTitle(text) {
+    this._titleBar.html(text)
+  }
+  addToolbarEntry(text, cb) {
+    let link = $(`<a>${text}</a>`)
+    link.on("click", cb)
+    this._toolbar.append(link)
+    return link
+  }
+  addSettingEntry(name, type) {
+    if (type === SettingType.Submit) {
+      let submit = $(`<input type="submit" class="us-input-submit" value="${name}">`)
+      this.settingForm.append(submit)
+      return submit
+    }
 
-  let line = $(`<p><label for="${name}">${name}: </label></p>`)
-  let input = null
-  if (type === SettingType.Text) {
-    input = $(`<input id="${name}" class="us-input-text" type="text">`)
-  } else {
-    console.error("Unknown SettingType: " + type)
-    return
+    let line = $(`<p><label for="${name}">${name}: </label></p>`)
+    let input = null
+    if (type === SettingType.Text) {
+      input = $(`<input id="${name}" class="us-input-text" type="text">`)
+    } else {
+      console.error("Unknown SettingType: " + type)
+      return
+    }
+    line.append(input)
+    this.settingForm.append(line)
+    return line
   }
-  line.append(input)
-  this.settingForm.append(line)
-  return line
-}
-changeFontSize(font) {
-  this.dialogDiv.css({ fontSize: `${font}px` })
-}
+  changeFontSize(font) {
+    this.dialogDiv.css({ fontSize: `${font}px` })
+  }
 }
 
 (async function () {
-"use strict"
+  "use strict"
 
-async function request(url) {
-  return await fetch(url, { credentials: "include" })
-    .then(res => res.json())
-    .then(data => {
-      if (data.code != 0) {
-        throw new Error(data.message)
-      }
-      return data
-    })
-}
-
-async function get_bilibili_video_info(bvid) {
-  return (await request(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`)).data
-}
-
-async function get_bilibili_page_info(aid, cid) {
-  return (await request(`https://api.bilibili.com/x/player/v2?aid=${aid}&cid=${cid}`)).data
-}
-
-let settings = null
-try {
-  settings = JSON.parse(await GM.getValue("us-bst-settings"))
-} catch (err) {
-  console.error(err)
-  settings = {
-    "font": 14,
-    "music_filter_rate": 0.85
+  async function request(url) {
+    return await fetch(url, { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.code != 0) {
+          throw new Error(data.message)
+        }
+        return data
+      })
   }
-}
 
-let dialog = new Dialog()
-dialog.changeFontSize(settings.font)
-let video = null
+  async function get_bilibili_video_info(bvid) {
+    return (await request(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`)).data
+  }
 
-dialog.contentPane.addClass("us-popup-reader")
-let downloadGenerateLink = dialog.addToolbarEntry("下载字幕", () => { })
-let downloadLink = dialog.addToolbarEntry("下载字幕文本", () => { })
-let downloadJsonLink = dialog.addToolbarEntry("下载字幕Json", () => { })
-downloadGenerateLink.hide()
-downloadLink.hide()
-downloadJsonLink.hide()
+  async function get_bilibili_page_info(aid, cid) {
+    return (await request(`https://api.bilibili.com/x/player/v2?aid=${aid}&cid=${cid}`)).data
+  }
 
-let fontSetting = dialog.addSettingEntry("字号", SettingType.Text)
-let musicFilterRateSetting = dialog.addSettingEntry("歌词过滤阈值", SettingType.Text)
-dialog.addSettingEntry("确定", SettingType.Submit)
-let cancel = dialog.addSettingEntry("取消", SettingType.Submit)
-dialog.addToolbarEntry("设置", () => {
-  fontSetting.find("input").val(settings.font)
-  musicFilterRateSetting.find("input").val(settings.music_filter_rate)
-  dialog.settingPane.show()
-  dialog.contentPane.hide()
-})
-cancel.on("click", () => {
-  dialog.settingPane.hide()
-  dialog.contentPane.show()
-})
-dialog.settingForm.on("submit", () => {
-  settings.font = fontSetting.find("input").val()
-  settings.music_filter_rate = musicFilterRateSetting.find("input").val()
-  ; (async function () {
-    await GM.setValue("us-bst-settings", JSON.stringify(settings))
-  })()
+  let settings = null
+  try {
+    settings = JSON.parse(await GM.getValue("us-bst-settings"))
+  } catch (err) {
+    console.error(err)
+    settings = {
+      "font": 14,
+      "music_filter_rate": 0.85
+    }
+  }
+
+  let dialog = new Dialog()
   dialog.changeFontSize(settings.font)
-  dialog.settingPane.hide()
-  dialog.contentPane.show()
-  return false
-})
+  let video = null
+
+  dialog.contentPane.addClass("us-popup-reader")
+  let downloadGenerateLink = dialog.addToolbarEntry("下载字幕", () => { })
+  let downloadLink = dialog.addToolbarEntry("下载字幕文本", () => { })
+  let downloadJsonLink = dialog.addToolbarEntry("下载字幕Json", () => { })
+  downloadGenerateLink.hide()
+  downloadLink.hide()
+  downloadJsonLink.hide()
+
+  let fontSetting = dialog.addSettingEntry("字号", SettingType.Text)
+  let musicFilterRateSetting = dialog.addSettingEntry("歌词过滤阈值", SettingType.Text)
+  dialog.addSettingEntry("确定", SettingType.Submit)
+  let cancel = dialog.addSettingEntry("取消", SettingType.Submit)
+  dialog.addToolbarEntry("设置", () => {
+    fontSetting.find("input").val(settings.font)
+    musicFilterRateSetting.find("input").val(settings.music_filter_rate)
+    dialog.settingPane.show()
+    dialog.contentPane.hide()
+  })
+  cancel.on("click", () => {
+    dialog.settingPane.hide()
+    dialog.contentPane.show()
+  })
+  dialog.settingForm.on("submit", () => {
+    settings.font = fontSetting.find("input").val()
+    settings.music_filter_rate = musicFilterRateSetting.find("input").val()
+    ; (async function () {
+      await GM.setValue("us-bst-settings", JSON.stringify(settings))
+    })()
+    dialog.changeFontSize(settings.font)
+    dialog.settingPane.hide()
+    dialog.contentPane.show()
+    return false
+  })
 
 
-let urlParameters = window.location.pathname.split("/")
-let bvid = urlParameters.pop()
-if (bvid == "") bvid = urlParameters.pop()
+  let urlParameters = window.location.pathname.split("/")
+  let bvid = urlParameters.pop()
+  if (bvid == "") bvid = urlParameters.pop()
 
-// insert link
-let subtitleBtn = $(`
+  // insert link
+  let subtitleBtn = $(`
     <div class="video-toolbar-right-item">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="video-note-icon video-toolbar-item-icon" viewBox="0 0 16 16">
             <path d="M3.708 7.755c0-1.111.488-1.753 1.319-1.753.681 0 1.138.47 1.186 1.107H7.36V7c-.052-1.186-1.024-2-2.342-2C3.414 5 2.5 6.05 2.5 7.751v.747c0 1.7.905 2.73 2.518 2.73 1.314 0 2.285-.792 2.342-1.939v-.114H6.213c-.048.615-.496 1.05-1.186 1.05-.84 0-1.319-.62-1.319-1.727v-.743zm6.14 0c0-1.111.488-1.753 1.318-1.753.682 0 1.139.47 1.187 1.107H13.5V7c-.053-1.186-1.024-2-2.342-2C9.554 5 8.64 6.05 8.64 7.751v.747c0 1.7.905 2.73 2.518 2.73 1.314 0 2.285-.792 2.342-1.939v-.114h-1.147c-.048.615-.497 1.05-1.187 1.05-.839 0-1.318-.62-1.318-1.727v-.743z"/>
@@ -290,150 +290,150 @@ let subtitleBtn = $(`
         字幕
     </div>`)
 
-setTimeout(() => {
-  let handler = setInterval(() => {
-    let toolbar = $("#arc_toolbar_report .video-toolbar-right .video-tool-more")
-    if (toolbar.length != 0) {
-      video = document.querySelector("video")
-      $(video).on("timeupdate", () => {
-        updateCurrentSubtitle()
-      })
-      $(video).on("seeking", () => {
-        updateCurrentSubtitle()
-      })
-      dialog.init()
-      toolbar.css("margin-right", "18px")
-      subtitleBtn.insertBefore(toolbar)
-      $(".arc_toolbar_report").css("justify-content", "initial")
-      clearInterval(handler)
-    }
-  }, 500)
-}, 3000)
+  setTimeout(() => {
+    let handler = setInterval(() => {
+      let toolbar = $("#arc_toolbar_report .video-toolbar-right .video-tool-more")
+      if (toolbar.length != 0) {
+        video = document.querySelector("video")
+        $(video).on("timeupdate", () => {
+          updateCurrentSubtitle()
+        })
+        $(video).on("seeking", () => {
+          updateCurrentSubtitle()
+        })
+        dialog.init()
+        toolbar.css("margin-right", "18px")
+        subtitleBtn.insertBefore(toolbar)
+        $(".arc_toolbar_report").css("justify-content", "initial")
+        clearInterval(handler)
+      }
+    }, 500)
+  }, 3000)
 
-let subtitleList = []
-let prevTime = 0
-let lastSubtitleIdx = 0
-function updateCurrentSubtitle() {
-  if (subtitleList.length == 0) {
-    return
-  }
-  const time = video.currentTime
-  let start = lastSubtitleIdx
-  if (time < prevTime) {
-    start = 0
-  }
-  for (; start < subtitleList.length - 1; start++) {
-    if (subtitleList[start].time <= time && time < subtitleList[start + 1].time) {
-      break
+  let subtitleList = []
+  let prevTime = 0
+  let lastSubtitleIdx = 0
+  function updateCurrentSubtitle() {
+    if (subtitleList.length == 0) {
+      return
     }
+    const time = video.currentTime
+    let start = lastSubtitleIdx
+    if (time < prevTime) {
+      start = 0
+    }
+    for (; start < subtitleList.length - 1; start++) {
+      if (subtitleList[start].time <= time && time < subtitleList[start + 1].time) {
+        break
+      }
+    }
+    if (lastSubtitleIdx != start) {
+      subtitleList[lastSubtitleIdx].span.removeClass("us-lyric-current")
+      subtitleList[start].span.addClass("us-lyric-current")
+      lastSubtitleIdx = start
+    }
+    prevTime = time
   }
-  if (lastSubtitleIdx != start) {
-    subtitleList[lastSubtitleIdx].span.removeClass("us-lyric-current")
-    subtitleList[start].span.addClass("us-lyric-current")
-    lastSubtitleIdx = start
-  }
-  prevTime = time
-}
-const backButton = $(`
+  const backButton = $(`
   <button class="us-fab-button">
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-arrow-left-circle" viewBox="0 0 16 16">
       <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8m15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-4.5-.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
     </svg>
   </button>
 `)
-dialog.fabDiv.append(backButton)
-backButton.on("click", () => {
-  if (subtitleList.length == 0) {
-    return
-  }
-  const scrollPane = dialog.contentScrollPane
-  const span = subtitleList[lastSubtitleIdx].span
-  let top = span.offset().top - scrollPane.offset().top + scrollPane.scrollTop()
-  top = Math.max(0, top - 4 * settings["font"] * 1.5)
-  scrollPane.animate({
-    scrollTop: top
-  }, 1000)
-})
-
-async function useSubtitle(subtitle, filename_without_ext) {
-  dialog.setTitle(subtitle.lan_doc)
-  let data = await fetch(subtitle.subtitle_url.replace("http:", "https:")).then(res => res.json())
-
-  dialog.contentPane.html("")
-  subtitleList = []
-  for (let line of data.body) {
-    if (line.music && line.music > settings.music_filter_rate) {
-      continue
+  dialog.fabDiv.append(backButton)
+  backButton.on("click", () => {
+    if (subtitleList.length == 0) {
+      return
     }
-    let link = $(`<a class="us-lyric-line-time">${parseTime(line.from)}</a>`)
-    link.on("click", () => {
-      video.currentTime = line.from
-    })
-    let lineDiv = $("<div class=\"us-lyric-line\" />")
-    let span = $(`<span class="us-lyric-line-content">${line.content}</span></div>`)
-    lineDiv.append(link)
-    lineDiv.append(span)
-    dialog.contentPane.append(lineDiv)
-    subtitleList.push({ time: line.from, span: span })
-  }
-  if (subtitleList.length != 0) {
-    subtitleList[0].span.addClass("us-lyric-current")
-  }
-  updateCurrentSubtitle()
-
-  downloadGenerateLink.on("click", () => {
-    let subtitleText = ""
-    for (let line of data.body) {
-      subtitleText += line.content + "\n"
-    }
-    downloadLink.attr("href", `data:plain/text;charset=utf-8,${encodeURIComponent(subtitleText)}`)
-    downloadJsonLink.attr("href", `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data.body))}`)
-    downloadLink.attr("download", `${filename_without_ext}.txt`)
-    downloadJsonLink.attr("download", `${filename_without_ext}.json`)
-    downloadLink.show()
-    downloadJsonLink.show()
-    downloadGenerateLink.hide()
+    const scrollPane = dialog.contentScrollPane
+    const span = subtitleList[lastSubtitleIdx].span
+    let top = span.offset().top - scrollPane.offset().top + scrollPane.scrollTop()
+    top = Math.max(0, top - 4 * settings["font"] * 1.5)
+    scrollPane.animate({
+      scrollTop: top
+    }, 1000)
   })
-  downloadGenerateLink.show()
-}
 
-async function getSubtitleList() {
-  let cur_page = (new URLSearchParams(window.location.search)).get("p") - 1
-  if (!cur_page || cur_page == -1) {
-    cur_page = 0
-  }
-  try {
-    let video_info = await get_bilibili_video_info(bvid)
-    let page_info = await get_bilibili_page_info(video_info.aid, video_info.pages[cur_page].cid)
-    const video_name = video_info.title
-    const page_name = video_info.pages[cur_page].part
-    let subtitles = page_info.subtitle.subtitles
-    if (subtitles.length == 0) {
-      dialog.contentPane.html("无字幕")
-    } else {
-      dialog.contentPane.html("")
-      for (let subtitle of subtitles) {
-        let link = $("<a>" + subtitle.lan_doc + "</a>")
-        link.on("click", () => {
-          useSubtitle(subtitle, `${video_name}-p${cur_page}-${page_name}`)
-        })
-        dialog.contentPane.append(link)
+  async function useSubtitle(subtitle, filename_without_ext) {
+    dialog.setTitle(subtitle.lan_doc)
+    let data = await fetch(subtitle.subtitle_url.replace("http:", "https:")).then(res => res.json())
+
+    dialog.contentPane.html("")
+    subtitleList = []
+    for (let line of data.body) {
+      if (line.music && line.music > settings.music_filter_rate) {
+        continue
       }
+      let link = $(`<a class="us-lyric-line-time">${parseTime(line.from)}</a>`)
+      link.on("click", () => {
+        video.currentTime = line.from
+      })
+      let lineDiv = $("<div class=\"us-lyric-line\" />")
+      let span = $(`<span class="us-lyric-line-content">${line.content}</span></div>`)
+      lineDiv.append(link)
+      lineDiv.append(span)
+      dialog.contentPane.append(lineDiv)
+      subtitleList.push({ time: line.from, span: span })
     }
-  } catch (e) {
-    dialog.contentPane.html(`获取字幕信息失败<br />${e}`)
-    console.error(e)
-  }
-}
+    if (subtitleList.length != 0) {
+      subtitleList[0].span.addClass("us-lyric-current")
+    }
+    updateCurrentSubtitle()
 
-// show popup and fetch information
-subtitleBtn.on("click", () => {
+    downloadGenerateLink.on("click", () => {
+      let subtitleText = ""
+      for (let line of data.body) {
+        subtitleText += line.content + "\n"
+      }
+      downloadLink.attr("href", `data:plain/text;charset=utf-8,${encodeURIComponent(subtitleText)}`)
+      downloadJsonLink.attr("href", `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data.body))}`)
+      downloadLink.attr("download", `${filename_without_ext}.txt`)
+      downloadJsonLink.attr("download", `${filename_without_ext}.json`)
+      downloadLink.show()
+      downloadJsonLink.show()
+      downloadGenerateLink.hide()
+    })
+    downloadGenerateLink.show()
+  }
+
+  async function getSubtitleList() {
+    let cur_page = (new URLSearchParams(window.location.search)).get("p") - 1
+    if (!cur_page || cur_page == -1) {
+      cur_page = 0
+    }
+    try {
+      let video_info = await get_bilibili_video_info(bvid)
+      let page_info = await get_bilibili_page_info(video_info.aid, video_info.pages[cur_page].cid)
+      const video_name = video_info.title
+      const page_name = video_info.pages[cur_page].part
+      let subtitles = page_info.subtitle.subtitles
+      if (subtitles.length == 0) {
+        dialog.contentPane.html("无字幕")
+      } else {
+        dialog.contentPane.html("")
+        for (let subtitle of subtitles) {
+          let link = $("<a>" + subtitle.lan_doc + "</a>")
+          link.on("click", () => {
+            useSubtitle(subtitle, `${video_name}-p${cur_page}-${page_name}`)
+          })
+          dialog.contentPane.append(link)
+        }
+      }
+    } catch (e) {
+      dialog.contentPane.html(`获取字幕信息失败<br />${e}`)
+      console.error(e)
+    }
+  }
+
+  // show popup and fetch information
+  subtitleBtn.on("click", () => {
   // titlebar.html()
-  dialog.setTitle("选择字幕")
-  dialog.show()
-  dialog.contentPane.html("正在加载字幕列表")
-  getSubtitleList()
-})
+    dialog.setTitle("选择字幕")
+    dialog.show()
+    dialog.contentPane.html("正在加载字幕列表")
+    getSubtitleList()
+  })
 })()
 
 
