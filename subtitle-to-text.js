@@ -245,9 +245,11 @@ class Dialog {
   let downloadGenerateLink = dialog.addToolbarEntry("下载字幕", () => { })
   let downloadLink = dialog.addToolbarEntry("下载字幕文本", () => { })
   let downloadJsonLink = dialog.addToolbarEntry("下载字幕Json", () => { })
+  let downloadSrtLink = dialog.addToolbarEntry("下载字幕Srt", () => { })
   downloadGenerateLink.hide()
   downloadLink.hide()
   downloadJsonLink.hide()
+  downloadSrtLink.hide()
 
   let fontSetting = dialog.addSettingEntry("字号", SettingType.Text)
   let musicFilterRateSetting = dialog.addSettingEntry("歌词过滤阈值", SettingType.Text)
@@ -388,13 +390,74 @@ class Dialog {
       }
       downloadLink.attr("href", `data:plain/text;charset=utf-8,${encodeURIComponent(subtitleText)}`)
       downloadJsonLink.attr("href", `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data.body))}`)
+      downloadSrtLink.attr("href", getSrtLink(data.body))
       downloadLink.attr("download", `${filename_without_ext}.txt`)
       downloadJsonLink.attr("download", `${filename_without_ext}.json`)
+      downloadSrtLink.attr("download", `${filename_without_ext}.srt`)
       downloadLink.show()
       downloadJsonLink.show()
+      downloadSrtLink.show()
       downloadGenerateLink.hide()
     })
     downloadGenerateLink.show()
+  }
+
+  function getSrtLink(data) {
+    function getSrt(data) {
+      const _ts = this;
+      let result = ``;
+      data.forEach((item, index) => {
+        result += echoSrt(item, index);
+      });
+      return result;
+    }
+    function echoSrt(data, index) {
+      let str = ``;
+      str += index + 1;
+      str += `\r\n`;
+
+      str += `${formatTime(data.from)} --> ${formatTime(data.to)}\r\n`;
+
+      str += `${data.content}\r\n`;
+
+      str += `\r\n`;
+      return str;
+    }
+    function formatTime(num) {
+      num = num * 1000;
+      let h = (() => {
+            let t = num / 60 / 60 / 1000;
+            return t >= 1 ? ~~t : 0;
+          })(),
+          m = (() => {
+            let t = [num - (h * 60 * 60 * 1000)] / 60 / 1000;
+            return t >= 1 ? ~~t : 0;
+          })(),
+          s = (() => {
+            let t = [num - (h * 60 * 60 * 1000) - (m * 60 * 1000)] / 1000;
+            return t >= 1 ? ~~t : 0;
+          })(),
+          ms = (() => {
+            let t = [num - (h * 60 * 60 * 1000) - (m * 60 * 1000) - (s * 1000)];
+            return t >= 1 ? ~~t : 0;
+          })();
+      return `${fillIn(h, 2)}:${fillIn(m, 2)}:${fillIn(s, 2)},${fillIn(ms, 3)}`;
+    }
+    function fillIn(num, len) {
+      num = `` + num;
+      len = len - num.length;
+      if (len) {
+        for (let i = 0; i < len; i++) {
+          num = `0${num}`;
+        };
+      };
+      return num;
+    }
+    const srtContent = getSrt(data)
+    // 创建一个Blob对象
+    var blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    return url
   }
 
   async function getSubtitleList() {
