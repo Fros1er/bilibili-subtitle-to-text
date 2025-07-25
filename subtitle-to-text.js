@@ -223,7 +223,7 @@ class Dialog {
   }
 
   async function get_bilibili_page_info(aid, cid) {
-    return (await request(`https://api.bilibili.com/x/player/v2?aid=${aid}&cid=${cid}`)).data
+    return (await request(`https://api.bilibili.com/x/player/wbi/v2?aid=${aid}&cid=${cid}`)).data
   }
 
   let settings = null
@@ -467,7 +467,9 @@ class Dialog {
     }
     try {
       let video_info = await get_bilibili_video_info(bvid)
+      // console.log(video_info)
       let page_info = await get_bilibili_page_info(video_info.aid, video_info.pages[cur_page].cid)
+      // console.log(page_info)
       const video_name = video_info.title
       const page_name = video_info.pages[cur_page].part
       let subtitles = page_info.subtitle.subtitles
